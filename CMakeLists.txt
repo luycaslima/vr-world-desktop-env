@@ -7,6 +7,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+#For the ARM Compilation error glDrawBuffersEXT
+add_compile_definitions(glDrawBuffersEXT=glDrawBuffers)
+
 # -----------------------------------------------------------------------------
 # 0. VR PLATFORM TOGGLE
 # -----------------------------------------------------------------------------
@@ -132,6 +135,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     rlImGui
 )
 
+#add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/include/rlxr)
+#target_link_libraries(${PROJECT_NAME} PRIVATE rlxr)
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE 
     SOL_ALL_SAFETIES_ON=1
 )
@@ -142,7 +148,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(${PROJECT_NAME} PRIVATE 
         -Wall 
         -Wextra 
-        -ftemplate-backtrace-limit=0
+        $<$<COMPILE_LANGUAGE:CXX>:-ftemplate-backtrace-limit=0>
         -Wno-unknown-pragmas      # Suppresses noise from external headers macro warnings
     )
 

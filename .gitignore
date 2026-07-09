@@ -1,4 +1,6 @@
 .continue
+.env
+
 # Prerequisites
 *.d
 

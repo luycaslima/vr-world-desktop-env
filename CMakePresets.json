@@ -1,0 +1,30 @@
+
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "desktop",
+      "displayName": "Window Mode (Desktop Development)",
+      "description": "Builds for macOS/Linux using standard windowed display servers.",
+      "binaryDir": "${sourceDir}/build/desktop",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER":"/usr/bin/clang",
+        "CMAKE_CXX_COMPILER":"/usr/bin/clang++",
+        "BUILD_NATIVE_DRM": "OFF",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "native-drm",
+      "displayName": "Native Mode (Bare-Metal DRM/KMS)",
+      "description": "Builds for raw TTY execution targeting Raspberry Pi or Linux desktop TTY.",
+      "binaryDir": "${sourceDir}/build/native",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER":"/usr/bin/aarch64-linux-gnu-gcc",
+        "CMAKE_CXX_COMPILER":"/usr/bin/aarch64-linux-gnu-g++",
+        "BUILD_NATIVE_DRM": "ON",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ]
+}
