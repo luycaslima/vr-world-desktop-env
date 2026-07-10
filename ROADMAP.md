@@ -6,6 +6,7 @@
 
 ### 1. Initial Phase - Os Prototyping 
 - [ ] Desktop Mode mode Application (Initial Tests)
+  - [ ] Change raylib to sdl3 for better support 
   - [X] OpenXR + Monado + Wivrn Support + X11 (Debug Purporses with the Oculus quest 1)
     - [ ] Insert Xfvb method to open applications inside 
     - [ ] Wayland Server Support (rlxr support needed for the bare metal version)

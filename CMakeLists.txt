@@ -16,6 +16,37 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # 1. Define a toggleable option (Defaults to ON)
 option(BUILD_DESKTOP "Build for Desktop PCVR (WiVRn/OpenXR)" ON)
 
+# TODO change raylib to SDL3
+
+# set(CMAKE_CXX_STANDARD 20)
+# set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# # 1. Fetch SDL3 directly from the main branch (required for the new XR features)
+# include(FetchContent)
+# FetchContent_Declare(
+#     SDL3
+#     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+#     GIT_TAG        main
+# )
+# FetchContent_MakeAvailable(SDL3)
+
+# # 2. Find the system OpenXR loader (Install via: sudo apt install libopenxr-loader-dev)
+# find_package(PkgConfig REQUIRED)
+# pkg_check_modules(OPENXR REQUIRED openxr)
+
+# # 3. Define the executable
+# add_executable(vr_launcher src/main.cpp)
+
+# # 4. Include directories and link libraries
+# target_include_directories(vr_launcher PRIVATE ${OPENXR_INCLUDE_DIRS})
+# target_link_directories(vr_launcher PRIVATE ${OPENXR_LIBRARY_DIRS})
+
+# # Link SDL3 statically or dynamically (SDL3::SDL3) and the OpenXR loader
+# target_link_libraries(vr_launcher PRIVATE 
+#     SDL3::SDL3
+# )
+
+
 # -----------------------------------------------------------------------------
 # 0. VR PLATFORM TOGGLE
 # -----------------------------------------------------------------------------
