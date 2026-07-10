@@ -2,10 +2,32 @@
 
 Custom Desktop Environment for my ARM OS for Custom VR set
 
-Needs to adapt [rlxr](https://github.com/caszuu/rlxr/tree/main) to support native_mode , linux and monado
+
+It is necessary to clone the [rlxr](https://github.com/caszuu/rlxr/tree/main) project for now in a `include` folder on the root of the project.
+This project needs to eventually be integrated to support WAYLAND sessions
+
+### Linux Execution and Testing
+
+Requires OpenXR, Monado and Wivrn, xfvb setted up
+
+For debbuging create a .desktop file so Wivrn can find the build easily and execute it
+
+add also `export XR_RUNTIME_JSON=/usr/share/openxr/1/openxr_wivrn.json` in your .bashrc so every session will find it 
+
+```
+[Desktop Entry]
+Type=Application
+Name=Raylib VR Test Build
+Exec=~/vr-world-desktop-env/build/desktop/game
+Icon=applications-games
+Terminal=false
+Categories=X-WiVRn-VR;Game; #The first tag is important for Wivrn to find
+```
 
 
-VR OS Architecture & Hardware Considerations
+---
+
+### VR OS Architecture & Hardware Considerations
 
 When migrating away from a general-purpose OS (like Raspberry Pi OS Lite) to a dedicated VR environment, pay attention to these core pillars:
 
@@ -29,8 +51,11 @@ You mentioned running apps inside your Raylib VR environment. Because you are ta
 Stripping the OS (Buildroot / Yocto)
 When you are ready to drop Raspberry Pi OS Lite, look into Buildroot. It allows you to compile an absolutely minimal Linux image from source. You can configure it to include only the Linux kernel, the DRM/Mesa graphics drivers, and your executable. A well-configured Buildroot image can boot your hardware directly into your Raylib compositor in under 5 seconds
 
-
+--- 
 ### OPENXR Support
+
+> Needs to adapt [rlxr](https://github.com/caszuu/rlxr/tree/main) to support native_mode , wayland and build openxr 
+
 
 If you just use Raylib's built-in 3D camera capabilities with two viewports, you are effectively just strapping a monitor to your face. True VR requires asynchronous reprojection (to prevent nausea when frames drop), predictive 6DOF head tracking, and—most importantly—barrel distortion and chromatic aberration correction to counteract the physical curvature of the headset lenses. OpenXR runtimes handle all of this complex math for you.
 

@@ -10,6 +10,12 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 #For the ARM Compilation error glDrawBuffersEXT
 add_compile_definitions(glDrawBuffersEXT=glDrawBuffers)
 
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# 1. Define a toggleable option (Defaults to ON)
+option(BUILD_DESKTOP "Build for Desktop PCVR (WiVRn/OpenXR)" ON)
+
 # -----------------------------------------------------------------------------
 # 0. VR PLATFORM TOGGLE
 # -----------------------------------------------------------------------------
@@ -134,6 +140,32 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     sol2 
     rlImGui
 )
+
+if(BUILD_DESKTOP)
+    message(STATUS "Configuring for Desktop OpenXR Mode...")
+
+    # 2. Add the rlxr subdirectory
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/include/rlxr)
+    
+    # 3. Find the system OpenXR loader (Required for WiVRn communication)
+    find_package(OpenXR REQUIRED)
+    
+    # 4. Link rlxr and the OpenXR loader to your executable
+    target_link_libraries(${PROJECT_NAME} PRIVATE 
+        rlxr 
+        OpenXR::openxr_loader
+    )
+    
+    # 5. Pass a macro to your C/C++ code so it knows we are in VR Desktop mode
+    #target_compile_definitions(${PROJECT_NAME} PRIVATE VR_DESKTOP_MODE)
+
+else()
+    message(STATUS "Configuring for Bare-Metal DRM Mode...")
+    
+    # Your future Raspberry Pi / Radxa native Wayland/DRM configuration will go here
+    # target_compile_definitions(${PROJECT_NAME} PRIVATE NATIVE_DRM_MODE)
+
+endif()
 
 #add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/include/rlxr)
 #target_link_libraries(${PROJECT_NAME} PRIVATE rlxr)
