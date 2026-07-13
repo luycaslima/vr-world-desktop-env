@@ -178,7 +178,7 @@ static float cubeSpeeds[NUM_CUBES] = { 1.0f, 1.5f, -1.2f, 2.0f, -0.8f };
 static SDL_GPUShader* LoadShader(const char* shaderName, SDL_GPUShaderStage stage, Uint32 samplerCount, Uint32 uniformBufferCount)
 {
     char path[256];
-    SDL_snprintf(path, sizeof(path), "assets/shaders/compiled/%s.spv", shaderName);
+    SDL_snprintf(path, sizeof(path), "assets/shaders/compiled/SPIRV/%s.spv", shaderName);
     
     size_t codeSize;
     void* code = SDL_LoadFile(path, &codeSize);
