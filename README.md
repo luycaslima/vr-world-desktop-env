@@ -24,6 +24,8 @@ Terminal=false
 Categories=X-WiVRn-VR;Game; #The first tag is important for Wivrn to find
 ```
 
+>To the Intellisense find the SDL3/SDL_openxr.h tell clangd to restart the server 
+
 
 ---
 

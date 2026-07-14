@@ -12,6 +12,9 @@ typedef struct Context
 	const char* Name;
 	const char* BasePath;
 	SDL_Window* Window; // TODO this will be used initially , may be discarded when using the OpenXR 
+	int windowWidth;
+	int windowHeigth;
+	//Add a setting options here
 	SDL_GPUDevice* Device;
 	float DeltaTime;
 
@@ -59,14 +62,14 @@ typedef struct PositionTextureVertex
 } PositionTextureVertex;
 
 
-typedef struct Application
-{
-	const char* Name;
-	int (*Init)(Context* context);
-	int (*Update)(Context* context);
-	int (*Draw)(Context* context);
-	void (*Quit)(Context* context);
-} Application;
+// typedef struct Application
+// {
+// 	const char* Name;
+// 	int (*Init)(Context* context);
+// 	int (*Update)(Context* context);
+// 	int (*Draw)(Context* context);
+// 	void (*Quit)(Context* context);
+// } Application;
 
 
 #endif

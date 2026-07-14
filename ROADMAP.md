@@ -7,7 +7,12 @@
 ### 1. Initial Phase - Os Prototyping 
 - [ ] Desktop Mode mode Application (Initial Tests)
   - [X] Change raylib to sdl3 for better support 
-    - [ ] Adapt functions to work as raylib style as a basegrounds
+    - [ ] Adapt functions to work as raylib style/idiomatic as groundbase
+    - [ ] ECS
+    - [ ] EventBus
+    - [ ] 3D Rendering
+      - [ ] Shader Batch Pipeline
+    - [ ] Physics Integration
   - [X] OpenXR + Monado + Wivrn Support (Debug Purporses with the Oculus quest 1)
     - [ ] Insert Xfvb method to open applications VR 
     - [ ] Wayland Server to open appls in VR
