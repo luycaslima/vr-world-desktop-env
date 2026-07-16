@@ -8,6 +8,7 @@
 - [ ] Desktop Mode mode Application (Initial Tests)
   - [X] Change raylib to sdl3 for better support 
     - [ ] Adapt functions to work as raylib style/idiomatic as groundbase
+      - [ ] Load Shader,Load Mesh, Draw in batch, Do Perspective Camera
     - [ ] ECS
     - [ ] EventBus
     - [ ] 3D Rendering
