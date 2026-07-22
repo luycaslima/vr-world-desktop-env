@@ -1,7 +1,6 @@
 #include "xray.hpp"
+#include "SDL3/SDL_render.h"
 #include "SDL3/SDL_video.h"
-#include "SDL3/SDL_vulkan.h"
-#include <iostream>
 #include <openxr/openxr.h>
 
 #include <SDL3/SDL.h>
@@ -17,17 +16,21 @@ namespace {
 
         SDL_Window* window = nullptr;
         SDL_GPUDevice* device = nullptr;
+        SDL_Event *event =nullptr;
+
         
         /* SDL GPU state */
         SDL_GPUGraphicsPipeline *pipeline = nullptr;
         SDL_GPUBuffer *vertexBuffer = nullptr;
         SDL_GPUBuffer *indexBuffer = nullptr;
-
+        
         // Active frame structures
         SDL_GPUCommandBuffer* currentCmdBuffer = nullptr;
         SDL_GPURenderPass* currentRenderPass = nullptr;
+        // get the swapchain texture
+        SDL_GPUTexture* swapchainTexture= nullptr;
         
-  
+
         // XR specific state managed by SDL3
         // (SDL 3.6+ tracking handles for OpenXR swapchains)
         XrInstance xrInstance = XR_NULL_HANDLE;
@@ -56,8 +59,7 @@ namespace XRay {
     
         SDL_Log("SDL initialized");
         // Tell SDL3 we want an OpenXR capable window & GPU backend
-        state.window = SDL_CreateWindow(title, windowWidth, windowHeight, SDL_WINDOW_VULKAN); 
-
+        state.window = SDL_CreateWindow(title, windowWidth, windowHeight, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE); 
 
         // 3. Get the required Vulkan instance extensions from SDL3
         // uint32_t extensionCount = 0;
@@ -75,7 +77,7 @@ namespace XRay {
         //     std::cout << " - " << extensions[i] << "\n";
         // }
 
-        state.device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, nullptr);
+        state.device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_MSL, true, nullptr);
         SDL_ClaimWindowForGPUDevice(state.device, state.window);
         
 
@@ -85,20 +87,57 @@ namespace XRay {
         return true;
     }
 
+    //This doesnt work because the state isnt the one at main
     bool ShouldClose() {
-        return !state.running;
+        return state.event->type == SDL_EVENT_WINDOW_CLOSE_REQUESTED;
     }
 
-    void BeginDrawing() {
+    void BeginDrawing(Camera3D camera) {
         // Every frame starts by getting a fresh command buffer from SDL3 GPU
         state.currentCmdBuffer = SDL_AcquireGPUCommandBuffer(state.device);
+        
+       
+        Uint32 width, height;
+        SDL_WaitAndAcquireGPUSwapchainTexture(state.currentCmdBuffer, state.window, &state.swapchainTexture, &width, &height);
+
+        // end the frame early if a swapchain texture is not available
+        if (state.swapchainTexture == NULL)
+        {
+            // you must always submit the command buffer
+            SDL_SubmitGPUCommandBuffer(state.currentCmdBuffer);
+            return;
+        }
+
+    
+    }
+
+    void ClearBackground(Color color){
+        SDL_GPUColorTargetInfo colorTargetInfo{};
+
+        // discard previous content and clear to a color
+        colorTargetInfo.clear_color = {color.r, color.g, color.b, color.a};
+        colorTargetInfo.load_op = SDL_GPU_LOADOP_CLEAR; // or SDL_GPU_LOADOP_LOAD to 
+                                                        // keep the previous content
+
+        // store the content to the texture
+        colorTargetInfo.store_op = SDL_GPU_STOREOP_STORE;
+
+        // where are we going to store the result?
+        colorTargetInfo.texture = state.swapchainTexture; // we will set this later to the 
+                                   // window's swapchain texture
+
+                                   // begin a render pass
+        state.currentRenderPass = SDL_BeginGPURenderPass(state.currentCmdBuffer, &colorTargetInfo, 1, NULL);
     }
 
 
     void EndDrawing() {
+        SDL_EndGPURenderPass(state.currentRenderPass);
+
         // Submit all our batched eye rendering work directly to the GPU hardware
         SDL_SubmitGPUCommandBuffer(state.currentCmdBuffer);
         state.currentCmdBuffer = nullptr;
+        state.swapchainTexture = nullptr;
     }
     
     // void BeginEyeDrawing(int eye) {

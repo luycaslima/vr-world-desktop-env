@@ -8,11 +8,14 @@ int main(int argc, char *argv[])
     XRay::InitEngine("Test", 1280, 720);
 
     bool is_running = true;
-    SDL_Event event;
+    
+    XRay::Camera3D camera = {};
 
+    SDL_Event event;
+    
     // Main application loop
     while (is_running) {
-        
+
         // Inner loop: Poll all currently pending events
         while (SDL_PollEvent(&event)) {
             
@@ -29,9 +32,15 @@ int main(int argc, char *argv[])
             }
         }
         // Add game logic updates and rendering here
+        XRay::BeginDrawing(camera);
+        XRay::ClearBackground(XRay::Colors::White);
+
+        XRay::EndDrawing();
     }
 
+    
     XRay::Shutdown();
     
+
     return 0;
 }

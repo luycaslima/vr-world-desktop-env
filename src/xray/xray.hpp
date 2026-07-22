@@ -92,12 +92,12 @@ namespace XRay {
     };
 
 
-    // Color, 4 components, R8G8B8A8 (32bit)
+    // Color, 4 components, 
     struct Color {
-        unsigned char r;
-        unsigned char g;
-        unsigned char b;
-        unsigned char a;
+        float r;
+        float g;
+        float b;
+        float a;
     };
 
     namespace Colors {

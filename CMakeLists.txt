@@ -43,7 +43,8 @@ include(FetchContent)
 FetchContent_Declare(
     sdl3
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-    GIT_TAG        main # Correct stable tag RELEASE VERSION DOES NOT COME WITH OPENXR
+    #Was main one before
+    GIT_TAG        cc2713c0477118d3074b625abe8df7de7118fe2e # Correct stable tag RELEASE VERSION DOES NOT COME WITH OPENXR
 )
 
 
@@ -54,18 +55,28 @@ set(SDL_KMSDRM ${BUILD_NATIVE_DRM} CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(sdl3)
 
 # --- Lua & Sol2 ---
-FetchContent_Declare(lua GIT_REPOSITORY https://github.com/walterschell/Lua.git GIT_TAG master)
+FetchContent_Declare(
+    lua 
+    GIT_REPOSITORY https://github.com/walterschell/Lua.git 
+    # was master
+    GIT_TAG     504ef66d500fa1fb4f1684b6617b01342eee704a
+)
 set(LUA_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(lua)
 
-FetchContent_Declare(sol2 GIT_REPOSITORY https://github.com/ThePhd/sol2.git GIT_TAG main)
+FetchContent_Declare(
+    sol2 
+    GIT_REPOSITORY https://github.com/ThePhd/sol2.git 
+    #was main
+    GIT_TAG c1f95a773c6f8f4fde8ca3efe872e7286afe4444)
 FetchContent_MakeAvailable(sol2)
 
 # --- Dear ImGui ---
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG        master
+    #was master
+    GIT_TAG        b335bf4328054498219afb4188ec39912f2a95b1
 )
 FetchContent_GetProperties(imgui)
 if(NOT imgui_POPULATED)
