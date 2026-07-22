@@ -1,4 +1,7 @@
 #include "xray.hpp"
+#include "SDL3/SDL_video.h"
+#include "SDL3/SDL_vulkan.h"
+#include <iostream>
 #include <openxr/openxr.h>
 
 #include <SDL3/SDL.h>
@@ -53,14 +56,37 @@ namespace XRay {
     
         SDL_Log("SDL initialized");
         // Tell SDL3 we want an OpenXR capable window & GPU backend
-        state.window = SDL_CreateWindow(title, windowWidth, windowHeight, SDL_WINDOW_OPENGL); 
+        state.window = SDL_CreateWindow(title, windowWidth, windowHeight, SDL_WINDOW_VULKAN); 
+
+
+        // 3. Get the required Vulkan instance extensions from SDL3
+        // uint32_t extensionCount = 0;
+        // const char* const* extensions = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
+        
+        // if (!extensions) {
+        //     std::cerr << "Failed to get Vulkan extensions: " << SDL_GetError() << std::endl;
+        //     SDL_DestroyWindow(state.window);
+        //     SDL_Quit();
+        //     return -1;
+        // }
+
+        // std::cout << "Required Vulkan extensions for this platform:\n";
+        // for (uint32_t i = 0; i < extensionCount; ++i) {
+        //     std::cout << " - " << extensions[i] << "\n";
+        // }
+
         state.device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, nullptr);
         SDL_ClaimWindowForGPUDevice(state.device, state.window);
         
+
         // Initialize OpenXR via SDL3 helper
         // state.xrSwapchain = SDL_CreateGPUXRSwapchain(...);
         
         return true;
+    }
+
+    bool ShouldClose() {
+        return !state.running;
     }
 
     void BeginDrawing() {
@@ -100,7 +126,7 @@ namespace XRay {
     //     state.currentRenderPass = nullptr;
     // }
 
-    void ShutdownEngine() {
+    void Shutdown() {
         SDL_DestroyGPUDevice(state.device);
         SDL_DestroyWindow(state.window);
         SDL_Quit();

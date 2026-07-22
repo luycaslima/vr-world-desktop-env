@@ -60,6 +60,8 @@ namespace XRay {
         CameraProjection projection;
     };
 
+    using Camera = Camera3D;
+
     // Mesh, vertex data and vao/vbo
     struct Mesh {
         int vertexCount;        // Number of vertices stored in arrays
@@ -106,7 +108,7 @@ namespace XRay {
 
     // Idiomatic Lifecycles
     bool InitEngine(const char* title, int windowWidth, int windowHeight);
-    void ShutdownEngine();
+    void Shutdown();
     bool ShouldClose();
     
     void PollEvents();
