@@ -51,7 +51,7 @@ namespace {
 
 namespace XRay {
 
-    bool InitEngine(const char* title, int windowWidth, int windowHeight) {
+    bool Init(const char* title, int windowWidth, int windowHeight) {
         if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_HAPTIC)) {
             SDL_Log("SDL_Init failed: %s", SDL_GetError());
             return false;
@@ -60,22 +60,6 @@ namespace XRay {
         SDL_Log("SDL initialized");
         // Tell SDL3 we want an OpenXR capable window & GPU backend
         state.window = SDL_CreateWindow(title, windowWidth, windowHeight, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE); 
-
-        // 3. Get the required Vulkan instance extensions from SDL3
-        // uint32_t extensionCount = 0;
-        // const char* const* extensions = SDL_Vulkan_GetInstanceExtensions(&extensionCount);
-        
-        // if (!extensions) {
-        //     std::cerr << "Failed to get Vulkan extensions: " << SDL_GetError() << std::endl;
-        //     SDL_DestroyWindow(state.window);
-        //     SDL_Quit();
-        //     return -1;
-        // }
-
-        // std::cout << "Required Vulkan extensions for this platform:\n";
-        // for (uint32_t i = 0; i < extensionCount; ++i) {
-        //     std::cout << " - " << extensions[i] << "\n";
-        // }
 
         state.device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_MSL, true, nullptr);
         SDL_ClaimWindowForGPUDevice(state.device, state.window);
@@ -92,7 +76,7 @@ namespace XRay {
         return state.event->type == SDL_EVENT_WINDOW_CLOSE_REQUESTED;
     }
 
-    void BeginDrawing(Camera3D camera) {
+    void BeginDrawing() {
         // Every frame starts by getting a fresh command buffer from SDL3 GPU
         state.currentCmdBuffer = SDL_AcquireGPUCommandBuffer(state.device);
         

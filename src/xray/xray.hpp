@@ -7,6 +7,7 @@ namespace XRay {
         CAMERA_PERSPECTIVE = 0 ,
         CAMERA_ORTHOGRAPHIC
     };
+
     // Vector2, 2 components
     struct Vector2 {
         float x;
@@ -19,7 +20,7 @@ namespace XRay {
         }
 
     };
-
+    
     // Vector3, 3 components
     struct Vector3 {
         float x;
@@ -100,6 +101,27 @@ namespace XRay {
         float a;
     };
 
+    //Shaders
+    struct PositionVertex {
+        float x,y,z;
+    };
+
+    struct PositionColorVertex {
+        float x,y,z;
+        float r,g,b,a;
+    };
+
+    struct PositionTextureVertex
+    {
+        float x, y, z;
+        float u, v;
+    };
+
+    namespace Vector3D {
+        inline constexpr Vector3 UP{0.0,1.0,0.0};
+        inline constexpr Vector3 FORWARD{0.0,0.0,1.0};
+    }
+
     namespace Colors {
         inline constexpr Color White{255, 255, 255, 255};
         inline constexpr Color Red{255, 0, 0, 255};
@@ -107,24 +129,28 @@ namespace XRay {
     }
 
     // Idiomatic Lifecycles
-    bool InitEngine(const char* title, int windowWidth, int windowHeight);
+    bool Init(const char* title, int windowWidth, int windowHeight);
     void Shutdown();
     bool ShouldClose();
     
+    //TODO make my event system here
     void PollEvents();
-    
     void ClearBackground(Color color);
     
-    void BeginDrawing(Camera3D camera);
+    void Begin3DMode(Camera3D camera);
+    void End3DMode();
+
+    void BeginDrawing();
     void EndDrawing();
 
     // Lifecycles & Shaders
     Shader LoadShader(const char* vsFileName, const char* fsFileName);
     void UnloadShader(Shader shader);
 
-    // Idiomatic State Changers
     void BeginShaderMode(Shader shader);
     void EndShaderMode();
+
+
 
     // Idiomatic Drawing Primitives
     void DrawCube(Vector3 position, Vector3 size, Color color);

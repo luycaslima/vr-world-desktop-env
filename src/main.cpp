@@ -5,11 +5,11 @@
 
 int main(int argc, char *argv[])
 {
-    XRay::InitEngine("Test", 1280, 720);
+    XRay::Init("Test", 1280, 720);
 
     bool is_running = true;
     
-    XRay::Camera3D camera = {};
+    //XRay::Camera3D camera = {};
 
     SDL_Event event;
     
@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
             }
         }
         // Add game logic updates and rendering here
-        XRay::BeginDrawing(camera);
+        XRay::BeginDrawing();
         XRay::ClearBackground(XRay::Colors::White);
 
         XRay::EndDrawing();
