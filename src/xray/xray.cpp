@@ -1,38 +1,26 @@
 #include "xray.hpp"
-#include "SDL3/SDL_render.h"
-#include "SDL3/SDL_video.h"
-#include <openxr/openxr.h>
-
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_gpu.h>
-#include <SDL3/SDL_openxr.h>
+
+#ifdef ENABLE_OPENXR
+    #include <openxr/openxr.h>
+    #include <SDL3/SDL_openxr.h>
+#endif
 
 namespace {
-    // Hidden internal global state -- exactly how Raylib manages its internals
     struct EngineState {
-
-        float deltaTime;
+        float deltaTime = 0.0f;
         bool running = true;
 
         SDL_Window* window = nullptr;
         SDL_GPUDevice* device = nullptr;
-        SDL_Event *event =nullptr;
-
-        
-        /* SDL GPU state */
-        SDL_GPUGraphicsPipeline *pipeline = nullptr;
-        SDL_GPUBuffer *vertexBuffer = nullptr;
-        SDL_GPUBuffer *indexBuffer = nullptr;
         
         // Active frame structures
         SDL_GPUCommandBuffer* currentCmdBuffer = nullptr;
         SDL_GPURenderPass* currentRenderPass = nullptr;
-        // get the swapchain texture
-        SDL_GPUTexture* swapchainTexture= nullptr;
-        
+        SDL_GPUTexture* swapchainTexture = nullptr;
 
-        // XR specific state managed by SDL3
-        // (SDL 3.6+ tracking handles for OpenXR swapchains)
+#ifdef ENABLE_OPENXR
         XrInstance xrInstance = XR_NULL_HANDLE;
         XrSystemId xrSystemId = XR_NULL_SYSTEM_ID;
         XrSession xrSession = XR_NULL_HANDLE;
@@ -44,6 +32,7 @@ namespace {
         uint32_t imageCount;
         bool xrSessionRunning = false;
         bool xrShouldQuit = false;
+#endif
     };
 
     EngineState state;
@@ -58,100 +47,93 @@ namespace XRay {
         }
     
         SDL_Log("SDL initialized");
-        // Tell SDL3 we want an OpenXR capable window & GPU backend
-        state.window = SDL_CreateWindow(title, windowWidth, windowHeight, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE); 
+        
+        // Removed SDL_WINDOW_VULKAN so SDL3 GPU can automatically manage Metal on macOS
+        state.window = SDL_CreateWindow(title, windowWidth, windowHeight, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY); 
+        if (!state.window) {
+            SDL_Log("Failed to create window: %s", SDL_GetError());
+            return false;
+        }
 
         state.device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_MSL, true, nullptr);
-        SDL_ClaimWindowForGPUDevice(state.device, state.window);
-        
+        if (!state.device) {
+            SDL_Log("Failed to create GPU device: %s", SDL_GetError());
+            return false;
+        }
 
-        // Initialize OpenXR via SDL3 helper
-        // state.xrSwapchain = SDL_CreateGPUXRSwapchain(...);
-        
+        if (!SDL_ClaimWindowForGPUDevice(state.device, state.window)) {
+            SDL_Log("Failed to claim window for GPU device: %s", SDL_GetError());
+            return false;
+        }
+
         return true;
     }
 
-    //This doesnt work because the state isnt the one at main
-    bool ShouldClose() {
-        return state.event->type == SDL_EVENT_WINDOW_CLOSE_REQUESTED;
+    void BeginDrawing() {
+        // Acquire fresh command buffer for this frame
+        state.currentCmdBuffer = SDL_AcquireGPUCommandBuffer(state.device);
+        if (!state.currentCmdBuffer) {
+            return;
+        }
+        
+        Uint32 width, height;
+        if (!SDL_WaitAndAcquireGPUSwapchainTexture(state.currentCmdBuffer, state.window, &state.swapchainTexture, &width, &height) || !state.swapchainTexture) {
+            // Swapchain texture not available (e.g., window minimized). 
+            // Submit empty command buffer and NULL OUT state handles so draw calls safely skip this frame.
+            SDL_SubmitGPUCommandBuffer(state.currentCmdBuffer);
+            state.currentCmdBuffer = nullptr;
+            state.swapchainTexture = nullptr;
+            return;
+        }
     }
 
-    void BeginDrawing() {
-        // Every frame starts by getting a fresh command buffer from SDL3 GPU
-        state.currentCmdBuffer = SDL_AcquireGPUCommandBuffer(state.device);
-        
-       
-        Uint32 width, height;
-        SDL_WaitAndAcquireGPUSwapchainTexture(state.currentCmdBuffer, state.window, &state.swapchainTexture, &width, &height);
-
-        // end the frame early if a swapchain texture is not available
-        if (state.swapchainTexture == NULL)
-        {
-            // you must always submit the command buffer
-            SDL_SubmitGPUCommandBuffer(state.currentCmdBuffer);
+    void ClearBackground(Color color) {
+        // Guard: Skip if frame acquisition failed in BeginDrawing()
+        if (!state.currentCmdBuffer || !state.swapchainTexture) {
             return;
         }
 
-    
-    }
+        // If a render pass is already active, end it before starting a new clear pass
+        if (state.currentRenderPass) {
+            SDL_EndGPURenderPass(state.currentRenderPass);
+            state.currentRenderPass = nullptr;
+        }
 
-    void ClearBackground(Color color){
         SDL_GPUColorTargetInfo colorTargetInfo{};
-
-        // discard previous content and clear to a color
         colorTargetInfo.clear_color = {color.r, color.g, color.b, color.a};
-        colorTargetInfo.load_op = SDL_GPU_LOADOP_CLEAR; // or SDL_GPU_LOADOP_LOAD to 
-                                                        // keep the previous content
-
-        // store the content to the texture
+        colorTargetInfo.load_op = SDL_GPU_LOADOP_CLEAR;
         colorTargetInfo.store_op = SDL_GPU_STOREOP_STORE;
+        colorTargetInfo.texture = state.swapchainTexture;
 
-        // where are we going to store the result?
-        colorTargetInfo.texture = state.swapchainTexture; // we will set this later to the 
-                                   // window's swapchain texture
-
-                                   // begin a render pass
         state.currentRenderPass = SDL_BeginGPURenderPass(state.currentCmdBuffer, &colorTargetInfo, 1, NULL);
     }
 
-
     void EndDrawing() {
-        SDL_EndGPURenderPass(state.currentRenderPass);
+        // Guard: Skip if no command buffer is active
+        if (!state.currentCmdBuffer) {
+            return;
+        }
 
-        // Submit all our batched eye rendering work directly to the GPU hardware
+        if (state.currentRenderPass) {
+            SDL_EndGPURenderPass(state.currentRenderPass);
+            state.currentRenderPass = nullptr;
+        }
+
+        // Submit frame and reset pointers
         SDL_SubmitGPUCommandBuffer(state.currentCmdBuffer);
         state.currentCmdBuffer = nullptr;
         state.swapchainTexture = nullptr;
     }
-    
-    // void BeginEyeDrawing(int eye) {
-    //     // 1. Get the target texture handle from your OpenXR swapchain for this eye
-    //     SDL_GPUTexture* eyeTargetTexture = nullptr; 
-    //     // SDL_GetGPUXRSwapchainTexture(state.xrSwapchain, eye, &eyeTargetTexture);
-
-    //     // 2. Set up the modern SDL3 Render Pass Color Target
-    //     SDL_GPUColorTargetInfo colorTarget = {};
-    //     colorTarget.texture = eyeTargetTexture;
-    //     colorTarget.load_op = SDL_GPU_LOADOP_CLEAR; // Clear the screen
-    //     colorTarget.store_op = SDL_GPU_STOREOP_STORE;
-        
-    //     // 3. Kick off the render pass just like Raylib's BeginDrawing() setting up a camera
-    //     state.currentRenderPass = SDL_BeginGPURenderPass(
-    //         state.currentCmdBuffer, 
-    //         &colorTarget, 1, 
-    //         nullptr
-    //     );
-    // }
-
-    // void EndEyeDrawing() {
-    //     // End the draw commands for this eye
-    //     SDL_EndGPURenderPass(state.currentRenderPass);
-    //     state.currentRenderPass = nullptr;
-    // }
 
     void Shutdown() {
-        SDL_DestroyGPUDevice(state.device);
-        SDL_DestroyWindow(state.window);
+        if (state.device) {
+            SDL_DestroyGPUDevice(state.device);
+            state.device = nullptr;
+        }
+        if (state.window) {
+            SDL_DestroyWindow(state.window);
+            state.window = nullptr;
+        }
         SDL_Quit();
     }
 }

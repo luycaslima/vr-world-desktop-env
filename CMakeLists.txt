@@ -2,16 +2,16 @@ cmake_minimum_required(VERSION 3.24)
 project(game VERSION 1.0.0 LANGUAGES CXX C)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # -----------------------------------------------------------------------------
-# 0. VR PLATFORM TOGGLE
+# 0. PLATFORM & VR TOGGLES
 # -----------------------------------------------------------------------------
 option(BUILD_NATIVE_DRM "Build for headless device using DRM/KMS" OFF)
+option(ENABLE_OPENXR "Enable OpenXR / VR support" OFF)
 
 if(BUILD_NATIVE_DRM)
     set(PLATFORM "DRM" CACHE STRING "Target DRM/KMS without display server" FORCE)
@@ -24,8 +24,9 @@ set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 # -----------------------------------------------------------------------------
 # 1. SYSTEM DEPENDENCIES (OpenXR & Vulkan)
 # -----------------------------------------------------------------------------
-find_package(OpenXR REQUIRED)
-#find_package(Vulkan REQUIRED)
+if(ENABLE_OPENXR)
+    find_package(OpenXR REQUIRED)
+endif()
 
 # -----------------------------------------------------------------------------
 # 2. FETCH DEPENDENCIES (SDL3, Lua, Sol2, ImGui)
@@ -33,8 +34,6 @@ find_package(OpenXR REQUIRED)
 set(FETCHCONTENT_TRY_FIND_PACKAGE_MODE NEVER)
 set(CMAKE_FETCHCONTENT_FULLY_DISCONNECTED OFF)
 set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem") 
-#set(FetchContent_SYSTEM ON CACHE INTERNAL "Force dependencies to be system includes")
-# Change ON to OFF here
 set(FetchContent_SYSTEM OFF CACHE INTERNAL "Force dependencies to be normal includes")
 
 include(FetchContent)
@@ -43,10 +42,8 @@ include(FetchContent)
 FetchContent_Declare(
     sdl3
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-    #Was main one before
-    GIT_TAG        cc2713c0477118d3074b625abe8df7de7118fe2e # Correct stable tag RELEASE VERSION DOES NOT COME WITH OPENXR
+    GIT_TAG        cc2713c0477118d3074b625abe8df7de7118fe2e
 )
-
 
 set(SDL_STATIC ON CACHE BOOL "" FORCE)
 set(SDL_SHARED OFF CACHE BOOL "" FORCE)
@@ -58,7 +55,6 @@ FetchContent_MakeAvailable(sdl3)
 FetchContent_Declare(
     lua 
     GIT_REPOSITORY https://github.com/walterschell/Lua.git 
-    # was master
     GIT_TAG     504ef66d500fa1fb4f1684b6617b01342eee704a
 )
 set(LUA_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
@@ -67,7 +63,6 @@ FetchContent_MakeAvailable(lua)
 FetchContent_Declare(
     sol2 
     GIT_REPOSITORY https://github.com/ThePhd/sol2.git 
-    #was main
     GIT_TAG c1f95a773c6f8f4fde8ca3efe872e7286afe4444)
 FetchContent_MakeAvailable(sol2)
 
@@ -75,7 +70,6 @@ FetchContent_MakeAvailable(sol2)
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    #was master
     GIT_TAG        b335bf4328054498219afb4188ec39912f2a95b1
 )
 FetchContent_GetProperties(imgui)
@@ -89,16 +83,14 @@ if(NOT imgui_POPULATED)
         ${imgui_SOURCE_DIR}/imgui_tables.cpp
         ${imgui_SOURCE_DIR}/imgui_demo.cpp
         ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
-        #${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp # Switched to Vulkan backend
     )
 
     target_include_directories(imgui PUBLIC  
         ${imgui_SOURCE_DIR}
         ${imgui_SOURCE_DIR}/backends
     )
-    target_link_libraries(imgui PRIVATE SDL3::SDL3 ) # Added Vulkan link
+    target_link_libraries(imgui PRIVATE SDL3::SDL3)
 endif()
-
 
 # -----------------------------------------------------------------------------
 # 3. SOURCE FILES & TARGET
@@ -110,28 +102,30 @@ file(GLOB_RECURSE SOURCES
     "${SRC_DIR}/*.h"
 )
 
-#Exclude the main example of OpenXr Support
-list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/main_example_xr.c")
+# Exclude standalone VR example if OpenXR is disabled
+if(NOT ENABLE_OPENXR)
+    list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/main_example_xr.c")
+endif()
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-target_include_directories(${PROJECT_NAME} PRIVATE 
-    ${SRC_DIR}
-    #${lua_SOURCE_DIR}/src
-)
+target_include_directories(${PROJECT_NAME} PRIVATE ${SRC_DIR})
 
+# Conditionally link OpenXR using modern CMake generator expressions
 target_link_libraries(${PROJECT_NAME} PRIVATE 
     SDL3::SDL3
-    OpenXR::openxr_loader
-    #Vulkan::Vulkan # Added Vulkan link
+    $<$<BOOL:${ENABLE_OPENXR}>:OpenXR::openxr_loader>
     lua_static   
     sol2 
     imgui
 )
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE 
-    SOL_ALL_SAFETIES_ON=1
-)
+# Pass a preprocessor definition so your C++ code knows if VR is available
+if(ENABLE_OPENXR)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_OPENXR=1)
+endif()
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE SOL_ALL_SAFETIES_ON=1)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(${PROJECT_NAME} PRIVATE 
