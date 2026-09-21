@@ -10,8 +10,11 @@ namespace XRay {
 
     // Vector2, 2 components
     struct Vector2 {
-        float x;
-        float y;
+        float x =0.0;
+        float y =0.0;
+
+        Vector2() = default;
+        Vector2(float x, float y) : x(x) , y(y) {} 
 
         Vector2& operator+=(const Vector2& other) {
             x += other.x;
@@ -144,13 +147,15 @@ namespace XRay {
     void EndDrawing();
 
     // Lifecycles & Shaders
-    Shader LoadShader(const char* vsFileName, const char* fsFileName);
-    void UnloadShader(Shader shader);
+    
+    //Shader LoadShader(const char* vsFileName, const char* fsFileName);
+    //void UnloadShader(Shader shader);
 
-    void BeginShaderMode(Shader shader);
-    void EndShaderMode();
+    // void BeginShaderMode(Shader shader);
+    // void EndShaderMode();
 
 
+    void DrawCircleSDF(Vector2 center, float radius, Color color, float feather = 1.5f);
 
     // Idiomatic Drawing Primitives
     void DrawCube(Vector3 position, Vector3 size, Color color);
@@ -161,6 +166,7 @@ namespace XRay {
 
     void BeginEyeDrawing(int eye); // 0 = Left, 1 = Right
     void EndEyeDrawing();
+    
 }
 
 #endif

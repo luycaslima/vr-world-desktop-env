@@ -28,6 +28,12 @@ if(ENABLE_OPENXR)
     find_package(OpenXR REQUIRED)
 endif()
 
+#GTK CONFIG
+# 2. Find the pkg-config tool
+# find_package(PkgConfig REQUIRED)
+# # 3. Use pkg-config to locate GTK4 and create an imported target
+# pkg_check_modules(GTK4 REQUIRED IMPORTED_TARGET gtk4)
+
 # -----------------------------------------------------------------------------
 # 2. FETCH DEPENDENCIES (SDL3, Lua, Sol2, ImGui)
 # -----------------------------------------------------------------------------
@@ -114,6 +120,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${SRC_DIR})
 # Conditionally link OpenXR using modern CMake generator expressions
 target_link_libraries(${PROJECT_NAME} PRIVATE 
     SDL3::SDL3
+    #PkgConfig::GTK4
     $<$<BOOL:${ENABLE_OPENXR}>:OpenXR::openxr_loader>
     lua_static   
     sol2 
@@ -136,6 +143,43 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     )
     set_target_properties(${PROJECT_NAME} PROPERTIES NO_SYSTEM_FROM_IMPORTED OFF)
 endif()
+
+#commands glslc circle.frag -o circle.frag.spv 
+#spirv-cross --msl ./shaders/glsl450/sdf/circle.frag.spv --output ./shaders/glsl450/sdf/circle.frag.msl
+
+# find_program(GLSLC glslc)
+# find_program(SPIRV_CROSS spirv-cross)
+
+# function(compile_shader SHADER_NAME STAGE)
+#     set(GLSL_SRC "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/glsl450/${SHADER_NAME}")
+#     set(SPV_OUT "${CMAKE_CURRENT_BINARY_DIR}/assets/shaders/compiled/SPIRV/${SHADER_NAME}.spv")
+#     set(MSL_OUT "${CMAKE_CURRENT_BINARY_DIR}/asset/shaders/compiled/MSL/${SHADER_NAME}.msl")
+
+#     # Compile GLSL to SPIR-V
+#     add_custom_command(
+#         OUTPUT ${SPV_OUT}
+#         COMMAND ${GLSLC} ${GLSL_SRC} -o ${SPV_OUT}
+#         DEPENDS ${GLSL_SRC}
+#     )
+
+#     # Transpile SPIR-V to MSL on Apple platforms
+#     if(APPLE)
+#         add_custom_command(
+#             OUTPUT ${MSL_OUT}
+#             COMMAND ${SPIRV_CROSS} --msl ${SPV_OUT} --output ${MSL_OUT}
+#             DEPENDS ${SPV_OUT}
+#         )
+#         list(APPEND SHADER_OUTPUTS ${MSL_OUT})
+#     else()
+#         list(APPEND SHADER_OUTPUTS ${SPV_OUT})
+#     endif()
+
+#     add_custom_target(${SHADER_NAME}_target ALL DEPENDS ${SHADER_OUTPUTS})
+# endfunction()
+
+# compile_shader("sdf_circle.vert" "vert")
+# compile_shader("sdf_circle.frag" "frag")
+
 
 # -----------------------------------------------------------------------------
 # 4. ASSETS COPY
