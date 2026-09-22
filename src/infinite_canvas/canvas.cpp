@@ -5,7 +5,7 @@
 
 
 void Canvas::Init(){
-    shape = Circle(XRay::Colors::Red, XRay::Vector2(200.0f, 200.0f), 100.0f);
+    shape = Circle(XRay::Colors::Red, XRay::Vector2(250.0f, 200.0f), 100.0f);
     XRay::Init("Inifite Canvas", 1280, 720);
     is_running = true;
 

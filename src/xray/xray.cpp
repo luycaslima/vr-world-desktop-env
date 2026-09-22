@@ -1,5 +1,4 @@
 #include "xray.hpp"
-#include <SDL3/SDL.h>
 #include <SDL3/SDL_gpu.h>
 
 #ifdef ENABLE_OPENXR
@@ -8,7 +7,7 @@
 #endif
 
 namespace {
-    //Make separate for shapes?
+    //TODO separate for shapes?
     struct CirclePushConstants {
         float view_projection[16]; // Offset   0, Size 64
         float center[2];           // Offset  64, Size  8
@@ -34,6 +33,8 @@ namespace {
         // Pipelines
         SDL_GPUGraphicsPipeline* sdfCirclePipeline = nullptr;
 
+        XRay::Camera3D currentCamera = {};
+
 #ifdef ENABLE_OPENXR
         XrInstance xrInstance = XR_NULL_HANDLE;
         XrSystemId xrSystemId = XR_NULL_SYSTEM_ID;
@@ -51,7 +52,58 @@ namespace {
 
     EngineState state;
 
-    // TODO need a method to compile automatically or load according to the system
+   
+    bool InitSDFPipelines() {
+       SDL_GPUShader* vertShader = XRay::LoadShader(
+        state.device, 
+        "assets/shaders/glsl450/sdf/circle.vert", 
+        0, 1, 0, 0, 
+        SDL_GPU_SHADERSTAGE_VERTEX
+        );
+        
+        SDL_GPUShader* fragShader = XRay::LoadShader(
+            state.device, 
+            "assets/shaders/glsl450/sdf/circle.frag", 
+            0, 1, 0, 0, 
+            SDL_GPU_SHADERSTAGE_FRAGMENT
+        );
+
+        if (!vertShader || !fragShader) return false;
+
+        SDL_GPUColorTargetDescription colorTargetDesc{};
+        colorTargetDesc.format = SDL_GetGPUSwapchainTextureFormat(state.device, state.window);
+
+        // Enable Alpha Blending
+        colorTargetDesc.blend_state.enable_blend = true;
+
+        // Color blending: src * src_alpha + dst * (1 - src_alpha)
+        colorTargetDesc.blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+        colorTargetDesc.blend_state.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+        colorTargetDesc.blend_state.color_blend_op = SDL_GPU_BLENDOP_ADD;
+
+        // Alpha blending: src * 1 + dst * (1 - src_alpha)
+        colorTargetDesc.blend_state.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
+        colorTargetDesc.blend_state.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+        colorTargetDesc.blend_state.alpha_blend_op = SDL_GPU_BLENDOP_ADD;
+
+        SDL_GPUGraphicsPipelineCreateInfo pipelineInfo{};
+        pipelineInfo.vertex_shader = vertShader;
+        pipelineInfo.fragment_shader = fragShader;
+        pipelineInfo.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+        pipelineInfo.target_info.color_target_descriptions = &colorTargetDesc;
+        pipelineInfo.target_info.num_color_targets = 1;
+
+        state.sdfCirclePipeline = SDL_CreateGPUGraphicsPipeline(state.device, &pipelineInfo);
+
+        SDL_ReleaseGPUShader(state.device, vertShader);
+        SDL_ReleaseGPUShader(state.device, fragShader);
+
+        return state.sdfCirclePipeline != nullptr;
+    }
+}
+
+namespace XRay {
+     // TODO need a method to compile automatically or load according to the system
     
     // Helper to load compiled SPIR-V / MSL shaders
     SDL_GPUShader* LoadShader(
@@ -112,56 +164,6 @@ namespace {
         return shader;
     }
 
-    bool InitSDFPipelines() {
-       SDL_GPUShader* vertShader = LoadShader(
-        state.device, 
-        "assets/shaders/glsl450/sdf/circle.vert", 
-        0, 1, 0, 0, 
-        SDL_GPU_SHADERSTAGE_VERTEX
-        );
-        
-        SDL_GPUShader* fragShader = LoadShader(
-            state.device, 
-            "assets/shaders/glsl450/sdf/circle.frag", 
-            0, 1, 0, 0, 
-            SDL_GPU_SHADERSTAGE_FRAGMENT
-        );
-
-        if (!vertShader || !fragShader) return false;
-
-        SDL_GPUColorTargetDescription colorTargetDesc{};
-        colorTargetDesc.format = SDL_GetGPUSwapchainTextureFormat(state.device, state.window);
-
-        // Enable Alpha Blending
-        colorTargetDesc.blend_state.enable_blend = true;
-
-        // Color blending: src * src_alpha + dst * (1 - src_alpha)
-        colorTargetDesc.blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
-        colorTargetDesc.blend_state.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
-        colorTargetDesc.blend_state.color_blend_op = SDL_GPU_BLENDOP_ADD;
-
-        // Alpha blending: src * 1 + dst * (1 - src_alpha)
-        colorTargetDesc.blend_state.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
-        colorTargetDesc.blend_state.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
-        colorTargetDesc.blend_state.alpha_blend_op = SDL_GPU_BLENDOP_ADD;
-
-        SDL_GPUGraphicsPipelineCreateInfo pipelineInfo{};
-        pipelineInfo.vertex_shader = vertShader;
-        pipelineInfo.fragment_shader = fragShader;
-        pipelineInfo.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
-        pipelineInfo.target_info.color_target_descriptions = &colorTargetDesc;
-        pipelineInfo.target_info.num_color_targets = 1;
-
-        state.sdfCirclePipeline = SDL_CreateGPUGraphicsPipeline(state.device, &pipelineInfo);
-
-        SDL_ReleaseGPUShader(state.device, vertShader);
-        SDL_ReleaseGPUShader(state.device, fragShader);
-
-        return state.sdfCirclePipeline != nullptr;
-    }
-}
-
-namespace XRay {
 
     bool Init(const char* title, int windowWidth, int windowHeight) {
         if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_HAPTIC)) {

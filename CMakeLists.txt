@@ -147,44 +147,79 @@ endif()
 #commands glslc circle.frag -o circle.frag.spv 
 #spirv-cross --msl ./shaders/glsl450/sdf/circle.frag.spv --output ./shaders/glsl450/sdf/circle.frag.msl
 
-# find_program(GLSLC glslc)
-# find_program(SPIRV_CROSS spirv-cross)
+# -----------------------------------------------------------------------------
+# 4. SHADER AUTOMATIC COMPILATION
+# -----------------------------------------------------------------------------
+find_program(GLSLC glslc)
+find_program(SPIRV_CROSS spirv-cross)
 
-# function(compile_shader SHADER_NAME STAGE)
-#     set(GLSL_SRC "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/glsl450/${SHADER_NAME}")
-#     set(SPV_OUT "${CMAKE_CURRENT_BINARY_DIR}/assets/shaders/compiled/SPIRV/${SHADER_NAME}.spv")
-#     set(MSL_OUT "${CMAKE_CURRENT_BINARY_DIR}/asset/shaders/compiled/MSL/${SHADER_NAME}.msl")
+if(NOT GLSLC)
+    message(WARNING "glslc compiler not found! Automatic shader compilation will be skipped.")
+endif()
 
-#     # Compile GLSL to SPIR-V
-#     add_custom_command(
-#         OUTPUT ${SPV_OUT}
-#         COMMAND ${GLSLC} ${GLSL_SRC} -o ${SPV_OUT}
-#         DEPENDS ${GLSL_SRC}
-#     )
+if(NOT SPIRV_CROSS)
+    message(WARNING "spirv-cross not found! SPIR-V to MSL transpilation will be skipped.")
+endif()
 
-#     # Transpile SPIR-V to MSL on Apple platforms
-#     if(APPLE)
-#         add_custom_command(
-#             OUTPUT ${MSL_OUT}
-#             COMMAND ${SPIRV_CROSS} --msl ${SPV_OUT} --output ${MSL_OUT}
-#             DEPENDS ${SPV_OUT}
-#         )
-#         list(APPEND SHADER_OUTPUTS ${MSL_OUT})
-#     else()
-#         list(APPEND SHADER_OUTPUTS ${SPV_OUT})
-#     endif()
+file(GLOB_RECURSE SHADER_SOURCES 
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/*.vert"
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/*.frag"
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/*.comp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/*.geom"
+)
 
-#     add_custom_target(${SHADER_NAME}_target ALL DEPENDS ${SHADER_OUTPUTS})
-# endfunction()
+set(COMPILED_SHADERS "")
+
+foreach(SHADER_SRC ${SHADER_SOURCES})
+    # Compute relative path (e.g., assets/shaders/glsl450/sdf/circle.vert)
+    file(RELATIVE_PATH REL_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${SHADER_SRC})
+
+    # Expected output filenames in the binary build tree
+    set(SPV_OUT "${CMAKE_CURRENT_BINARY_DIR}/${REL_PATH}.spv")
+    set(MSL_OUT "${CMAKE_CURRENT_BINARY_DIR}/${REL_PATH}.msl")
+
+    get_filename_component(OUT_DIR ${SPV_OUT} DIRECTORY)
+
+    if(GLSLC)
+        # 1. Compile GLSL -> SPIR-V
+        add_custom_command(
+            OUTPUT ${SPV_OUT}
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${OUT_DIR}
+            COMMAND ${GLSLC} ${SHADER_SRC} -o ${SPV_OUT}
+            DEPENDS ${SHADER_SRC}
+            COMMENT "Compiling GLSL: ${REL_PATH} -> ${REL_PATH}.spv"
+            VERBATIM
+        )
+        list(APPEND COMPILED_SHADERS ${SPV_OUT})
+
+        # 2. Transpile SPIR-V -> MSL
+        if(SPIRV_CROSS)
+            add_custom_command(
+                OUTPUT ${MSL_OUT}
+                COMMAND ${SPIRV_CROSS} ${SPV_OUT} --msl --output ${MSL_OUT}
+                DEPENDS ${SPV_OUT}
+                COMMENT "Transpiling MSL: ${REL_PATH}.spv -> ${REL_PATH}.msl"
+                VERBATIM
+            )
+            list(APPEND COMPILED_SHADERS ${MSL_OUT})
+        endif()
+    endif()
+endforeach()
+
+# Target that rebuilds modified shaders before executable compilation
+add_custom_target(CompileShaders DEPENDS ${COMPILED_SHADERS})
+add_dependencies(${PROJECT_NAME} CompileShaders)
 
 # compile_shader("sdf_circle.vert" "vert")
 # compile_shader("sdf_circle.frag" "frag")
 
 
 # -----------------------------------------------------------------------------
-# 4. ASSETS COPY
+# 5. ASSETS COPY (Static Assets + Compiled Shaders)
 # -----------------------------------------------------------------------------
 set(ASSETS_FOLDERS data assets)
+
+# Step A: Copy source assets folder (uncompiled files, textures, scripts)
 foreach(FOLDER ${ASSETS_FOLDERS})
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${FOLDER}")
         add_custom_command(
@@ -195,3 +230,13 @@ foreach(FOLDER ${ASSETS_FOLDERS})
         )
     endif()
 endforeach()
+
+# Step B: Copy compiled shader outputs (.spv / .msl) over to runtime folder
+if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/assets")
+    add_custom_command(
+        TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_BINARY_DIR}/assets"
+        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets"
+    )
+endif()

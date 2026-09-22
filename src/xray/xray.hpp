@@ -1,6 +1,10 @@
 #ifndef XRAY_HPP
 #define XRAY_HPP
 
+//#include "xray/base.h"
+
+#include <SDL3/SDL.h>
+
 namespace XRay {
 
     enum  CameraProjection {
@@ -58,13 +62,20 @@ namespace XRay {
 
     struct Camera3D {
         Vector3 position;
-        Vector3 target;
-        Vector3 up;
-        float fovy;
+        Vector3 target ;
+        Vector3 up ;
+        float fovy ;
         CameraProjection projection;
     };
 
     using Camera = Camera3D;
+
+    struct Camera2D{
+        Vector2 offset;         // Camera offset (screen space offset from window origin)
+        Vector2 target;         // Camera target (world space target point that is mapped to screen space offset)
+        float rotation;         // Camera rotation in degrees (pivots around target)
+        float zoom;             // Camera zoom (scaling around target), must not be set to 0, set to 1.0f for no scale
+    };
 
     // Mesh, vertex data and vao/vbo
     struct Mesh {
@@ -142,6 +153,9 @@ namespace XRay {
     
     void Begin3DMode(Camera3D camera);
     void End3DMode();
+    
+    void Begin2DMode(Camera2D camera);
+    void End2DMode();
 
     void BeginDrawing();
     void EndDrawing();
@@ -154,6 +168,13 @@ namespace XRay {
     // void BeginShaderMode(Shader shader);
     // void EndShaderMode();
 
+    SDL_GPUShader* LoadShader( SDL_GPUDevice* device, 
+        const char* basePath,
+        Uint32 samplerCount, 
+        Uint32 uniformBufferCount, 
+        Uint32 storageBufferCount, 
+        Uint32 storageTextureCount, 
+        SDL_GPUShaderStage stage);
 
     void DrawCircleSDF(Vector2 center, float radius, Color color, float feather = 1.5f);
 

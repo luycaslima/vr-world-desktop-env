@@ -4,10 +4,14 @@
 #include "xray/xray.hpp"
 
 struct Circle {
+    //XRay::Matrix matrix;
 
     XRay::Color color{};
     XRay::Vector2 pos{};
-    float radius{0.0f};
+    XRay::Vector2 scale{1.0f,1.0f};
+    float radius{1.0f};
+    float rotation = 0.0f;
+
 
     Circle() = default; 
     Circle(XRay::Color color, XRay::Vector2 position, float r) 

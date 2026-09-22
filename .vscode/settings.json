@@ -1,5 +1,7 @@
 {
     "clangd.arguments": [
-        "--compile-commands-dir=${workspaceFolder}/build/desktop"
+        "--compile-commands-dir=build/desktop-macos",
+        "--background-index",
+        "--clang-tidy"
     ]
 }
