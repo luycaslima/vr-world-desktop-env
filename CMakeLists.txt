@@ -109,9 +109,9 @@ file(GLOB_RECURSE SOURCES
 )
 
 # Exclude standalone VR example if OpenXR is disabled
-if(NOT ENABLE_OPENXR)
+#if(NOT ENABLE_OPENXR)
     list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/main_example_xr.c")
-endif()
+#endif()
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 

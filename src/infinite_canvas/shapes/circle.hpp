@@ -18,7 +18,8 @@ struct Circle {
         : color(color), pos(position), radius(r) {}
 
     void Draw() const {
-        XRay::DrawCircleSDF(pos, radius, color);
+        //XRay::DrawCircleSDF(pos, radius, color);
+        XRay::DrawProCircleSDF(pos, rotation, scale, radius, color, 1.0f);
     }
 };
 

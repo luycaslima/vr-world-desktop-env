@@ -1,3 +1,4 @@
+#include "xray/xmath.hpp"
 #include "xray/xray.hpp"
 #include "canvas.hpp"
 #include "infinite_canvas/shapes/circle.hpp"
@@ -5,7 +6,15 @@
 
 
 void Canvas::Init(){
-    shape = Circle(XRay::Colors::Red, XRay::Vector2(250.0f, 200.0f), 100.0f);
+    shape = Circle(XRay::Colors::Red, XRay::Vector2(250.0f, 200.0f), 150.0f);
+    
+    cam = XRay::Camera2D{
+        XRay::Vector2{0,0},
+        XRay::Vector2{0,0},
+        0.0f,
+        1.0f
+    };
+
     XRay::Init("Inifite Canvas", 1280, 720);
     is_running = true;
 

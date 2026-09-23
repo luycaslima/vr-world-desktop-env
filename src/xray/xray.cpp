@@ -9,9 +9,9 @@
 namespace {
     //TODO separate for shapes?
     struct CirclePushConstants {
-        float view_projection[16]; // Offset   0, Size 64
-        float center[2];           // Offset  64, Size  8
-        float padding1[2]{0, 0};   // Offset  72, Size  8 (Aligns color to offset 80)
+        float mvp[16]; // Offset   0, Size 64
+        //float center[2];           // Offset  64, Size  8
+        //float padding1[2]{0, 0};   // Offset  72, Size  8 (Aligns color to offset 80)
         float color[4];            // Offset  80, Size 16
         float radius;              // Offset  96, Size  4
         float feather;             // Offset 100, Size  4
@@ -238,44 +238,6 @@ namespace XRay {
         state.currentRenderPass = SDL_BeginGPURenderPass(state.currentCmdBuffer, &colorTargetInfo, 1, NULL);
     }
 
-    void DrawCircleSDF(Vector2 center, float radius, Color color, float feather) {
-        if (!state.currentRenderPass) return;
-
-        // Bind Pipeline
-        SDL_BindGPUGraphicsPipeline(state.currentRenderPass, state.sdfCirclePipeline);
-
-        // Get current window pixel dimensions
-        int w, h;
-        SDL_GetWindowSizeInPixels(state.window, &w, &h);
-        float width = static_cast<float>(w);
-        float height = static_cast<float>(h);
-
-        // Build Orthographic Projection Matrix (Top-Left 0,0 origin)
-        CirclePushConstants pushConstants{};
-        pushConstants.view_projection[0]  =  2.0f / width;
-        pushConstants.view_projection[5]  = -2.0f / height; // Negative to flip Y to top-left origin
-        pushConstants.view_projection[10] =  1.0f;
-        pushConstants.view_projection[15] =  1.0f;
-        pushConstants.view_projection[12] = -1.0f;
-        pushConstants.view_projection[13] =  1.0f;
-
-        pushConstants.center[0] = center.x;
-        pushConstants.center[1] = center.y;
-        pushConstants.color[0]  = color.r; 
-        pushConstants.color[1]  = color.g;
-        pushConstants.color[2]  = color.b; 
-        pushConstants.color[3]  = color.a;
-        pushConstants.radius    = radius;
-        pushConstants.feather   = feather;
-
-       // Bind Pipeline & Push Data
-        SDL_BindGPUGraphicsPipeline(state.currentRenderPass, state.sdfCirclePipeline);
-        SDL_PushGPUVertexUniformData(state.currentCmdBuffer, 0, &pushConstants, sizeof(pushConstants));
-        SDL_PushGPUFragmentUniformData(state.currentCmdBuffer, 0, &pushConstants, sizeof(pushConstants));
-
-        // Draw 6 procedural vertices (1 quad)
-        SDL_DrawGPUPrimitives(state.currentRenderPass, 6, 1, 0, 0);
-    }
 
     void EndDrawing() {
         // Guard: Skip if no command buffer is active
@@ -292,6 +254,52 @@ namespace XRay {
         SDL_SubmitGPUCommandBuffer(state.currentCmdBuffer);
         state.currentCmdBuffer = nullptr;
         state.swapchainTexture = nullptr;
+    }
+
+    
+    void DrawProCircleSDF(Vector2 position, float rotation, Vector2 scale, float radius, Color color, float feather) {
+        if (!state.currentRenderPass) return;
+
+        int w, h;
+        SDL_GetWindowSizeInPixels(state.window, &w, &h);
+
+        // Compute quad extent in pixels
+        float extent = radius + feather;
+        Vector2 quadScale = { scale.x * extent, scale.y * extent };
+
+        // 1. Calculate Matrices
+        Matrix proj = MatrixOrtho(static_cast<float>(w), static_cast<float>(h));
+        Matrix model = MatrixTransform2D(position, rotation, quadScale);
+        Matrix mvp = MatrixMultiply(proj, model);
+
+        // 2. Populate Push Constants
+        CirclePushConstants pushConstants{};
+        // Copy matrix into uniform float array
+        memcpy(pushConstants.mvp, &mvp, sizeof(Matrix));
+
+        //pushConstants.center[0] = position.x;
+        //pushConstants.center[1] = position.y;
+        pushConstants.color[0]  = color.r; 
+        pushConstants.color[1]  = color.g;
+        pushConstants.color[2]  = color.b; 
+        pushConstants.color[3]  = color.a;
+        pushConstants.radius    = radius;
+        pushConstants.feather   = feather;
+
+        // 3. Bind & Draw
+        SDL_BindGPUGraphicsPipeline(state.currentRenderPass, state.sdfCirclePipeline);
+        SDL_PushGPUVertexUniformData(state.currentCmdBuffer, 0, &pushConstants, sizeof(pushConstants));
+        SDL_PushGPUFragmentUniformData(state.currentCmdBuffer, 0, &pushConstants, sizeof(pushConstants));
+
+        SDL_DrawGPUPrimitives(state.currentRenderPass, 6, 1, 0, 0);
+    }
+
+    void Begin2DMode(Camera2D camera){
+        
+    }
+
+    void End2DMode() {
+
     }
 
     void Shutdown() {

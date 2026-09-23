@@ -3,6 +3,7 @@
 
 //#include "xray/base.h"
 
+#include "xray/xmath.hpp"
 #include <SDL3/SDL.h>
 
 namespace XRay {
@@ -12,36 +13,7 @@ namespace XRay {
         CAMERA_ORTHOGRAPHIC
     };
 
-    // Vector2, 2 components
-    struct Vector2 {
-        float x =0.0;
-        float y =0.0;
-
-        Vector2() = default;
-        Vector2(float x, float y) : x(x) , y(y) {} 
-
-        Vector2& operator+=(const Vector2& other) {
-            x += other.x;
-            y += other.y;
-            return *this;
-        }
-
-    };
-    
-    // Vector3, 3 components
-    struct Vector3 {
-        float x;
-        float y;
-        float z;
-    };
-
-    // Vector4, 4 components
-    struct Vector4 {
-        float x;
-        float y;
-        float z;
-        float w;
-    };
+   
 
     // Opaque handle for a custom shader
     struct Shader {
@@ -52,13 +24,6 @@ namespace XRay {
     // Quaternion, 4 components (Vector4 alias)
     using Quaternion = Vector4;
 
-    // Matrix, 4x4 components, column major, OpenGL style, right-handed
-    struct Matrix {
-        float m0, m4, m8, m12;  // Matrix first row
-        float m1, m5, m9, m13;  // Matrix second row
-        float m2, m6, m10, m14; // Matrix third row
-        float m3, m7, m11, m15; // Matrix fourth row
-    };
 
     struct Camera3D {
         Vector3 position;
@@ -176,8 +141,8 @@ namespace XRay {
         Uint32 storageTextureCount, 
         SDL_GPUShaderStage stage);
 
-    void DrawCircleSDF(Vector2 center, float radius, Color color, float feather = 1.5f);
-
+    //void DrawCircleSDF(Vector2 center, float radius, Color color, float feather = 1.5f);
+    void DrawProCircleSDF(Vector2 position, float rotation, Vector2 scale, float radius, Color color, float feather);
     // Idiomatic Drawing Primitives
     void DrawCube(Vector3 position, Vector3 size, Color color);
 
