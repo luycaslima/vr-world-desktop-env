@@ -8,10 +8,8 @@
 
 namespace {
     //TODO separate for shapes?
-    struct CirclePushConstants {
-        float mvp[16]; // Offset   0, Size 64
-        //float center[2];           // Offset  64, Size  8
-        //float padding1[2]{0, 0};   // Offset  72, Size  8 (Aligns color to offset 80)
+    struct alignas(16) CirclePushConstants {
+        float mvp[16]; // Offset   0, Size 64   
         float color[4];            // Offset  80, Size 16
         float radius;              // Offset  96, Size  4
         float feather;             // Offset 100, Size  4
@@ -108,7 +106,7 @@ namespace XRay {
     // Helper to load compiled SPIR-V / MSL shaders
     SDL_GPUShader* LoadShader(
         SDL_GPUDevice* device, 
-        const char* basePath,
+        const char* relativePath,
         Uint32 samplerCount, 
         Uint32 uniformBufferCount, 
         Uint32 storageBufferCount, 
@@ -117,18 +115,21 @@ namespace XRay {
     ) {
         SDL_GPUShaderFormat supportedFormats = SDL_GetGPUShaderFormats(device);
         
-        char fullFilename[256];
+        // Get absolute directory of the running executable
+        const char* basePath = SDL_GetBasePath(); 
+        
+        char fullFilename[512];
         SDL_GPUShaderFormat shaderFormat;
         const char* entrypoint;
 
         if (supportedFormats & SDL_GPU_SHADERFORMAT_MSL) {
             // macOS (Metal)
-            SDL_snprintf(fullFilename, sizeof(fullFilename), "%s.msl", basePath);
+            SDL_snprintf(fullFilename, sizeof(fullFilename), "%s%s.msl", basePath ? basePath : "", relativePath);
             shaderFormat = SDL_GPU_SHADERFORMAT_MSL;
-            entrypoint = "main0"; // spirv-cross defaults to main0 for MSL
+            entrypoint = "main0";
         } else if (supportedFormats & SDL_GPU_SHADERFORMAT_SPIRV) {
             // Linux / Windows (Vulkan)
-            SDL_snprintf(fullFilename, sizeof(fullFilename), "%s.spv", basePath);
+            SDL_snprintf(fullFilename, sizeof(fullFilename), "%s%s.spv", basePath ? basePath : "", relativePath);
             shaderFormat = SDL_GPU_SHADERFORMAT_SPIRV;
             entrypoint = "main";
         } else {

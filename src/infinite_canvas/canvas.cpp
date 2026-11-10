@@ -6,7 +6,7 @@
 
 
 void Canvas::Init(){
-    shape = Circle(XRay::Colors::Red, XRay::Vector2(250.0f, 200.0f), 150.0f);
+    shape = Circle(XRay::Colors::Red, XRay::Vector2(250.0f, 200.0f), 100.0f);
     
     cam = XRay::Camera2D{
         XRay::Vector2{0,0},

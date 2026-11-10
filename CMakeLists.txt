@@ -171,10 +171,8 @@ file(GLOB_RECURSE SHADER_SOURCES
 set(COMPILED_SHADERS "")
 
 foreach(SHADER_SRC ${SHADER_SOURCES})
-    # Compute relative path (e.g., assets/shaders/glsl450/sdf/circle.vert)
     file(RELATIVE_PATH REL_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${SHADER_SRC})
 
-    # Expected output filenames in the binary build tree
     set(SPV_OUT "${CMAKE_CURRENT_BINARY_DIR}/${REL_PATH}.spv")
     set(MSL_OUT "${CMAKE_CURRENT_BINARY_DIR}/${REL_PATH}.msl")
 
@@ -206,37 +204,22 @@ foreach(SHADER_SRC ${SHADER_SOURCES})
     endif()
 endforeach()
 
-# Target that rebuilds modified shaders before executable compilation
 add_custom_target(CompileShaders DEPENDS ${COMPILED_SHADERS})
 add_dependencies(${PROJECT_NAME} CompileShaders)
-
-# compile_shader("sdf_circle.vert" "vert")
-# compile_shader("sdf_circle.frag" "frag")
 
 
 # -----------------------------------------------------------------------------
 # 5. ASSETS COPY (Static Assets + Compiled Shaders)
 # -----------------------------------------------------------------------------
-set(ASSETS_FOLDERS data assets)
-
-# Step A: Copy source assets folder (uncompiled files, textures, scripts)
-foreach(FOLDER ${ASSETS_FOLDERS})
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${FOLDER}")
-        add_custom_command(
-            TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_CURRENT_SOURCE_DIR}/${FOLDER}"
-            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/${FOLDER}"
-        )
-    endif()
-endforeach()
-
-# Step B: Copy compiled shader outputs (.spv / .msl) over to runtime folder
-if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/assets")
-    add_custom_command(
-        TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_BINARY_DIR}/assets"
-        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets"
-    )
-endif()
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    # Step A: Copy static assets from source tree
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets"
+    "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets"
+    # Step B: Overwrite with compiled binary shaders (.spv / .msl)
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_BINARY_DIR}/assets"
+    "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets"
+    COMMENT "Syncing static assets and compiled shaders to runtime build folder"
+)
